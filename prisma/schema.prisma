@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model GameCategory {
+  id                String            @id @db.VarChar(255)
+  name              String?           @db.VarChar(255)
+  game_environments GameEnvironment[]
+
+  @@map("game_categories")
+}
+
+model GameEnvironment {
+  id               String        @id @db.VarChar(255)
+  name             String?       @db.VarChar(255)
+  game_category_id String?       @db.VarChar(255)
+  user_id          String?       @db.VarChar(255)
+  game_categories  GameCategory? @relation(fields: [game_category_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkcy8iumfvgrpbw7ua7ybel3t7e")
+  users            User?         @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkseslg01ujfslru2pg8qkfd2o2")
+  games            Game[]
+  player_roles     PlayerRole[]
+
+  @@map("game_environments")
+}
+
+model GamePlayer {
+  id             String      @id @db.VarChar(255) @default(uuid())
+  is_impostor    Boolean
+  game_id        String      @db.VarChar(255)
+  player_role_id String?     @db.VarChar(255)
+  user_id        String?     @db.VarChar(255)
+  users          User?       @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk5rtr7894cak3lsc62m3sdwaf3")
+  player_roles   PlayerRole? @relation(fields: [player_role_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fko2hybbpq2ipsqfkqc7ingtgv1")
+  games          Game        @relation(fields: [game_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkrbr2flqdav5ovyjas7q92u64r")
+
+  @@map("game_players")
+}
+
+model Game {
+  id                  String          @id @default(uuid()) @db.VarChar(255)
+  created_at          DateTime        @default(now()) @db.Timestamp(6)
+  game_environment_id String          @db.VarChar(255)
+  room_id             String?         @db.VarChar(255)
+  game_players        GamePlayer[]
+  rooms               Room?           @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk28hmq7s2uwxvj516cit06tdsv")
+  game_environments   GameEnvironment @relation(fields: [game_environment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkgv3dtv75twwmpt0trqo4d2v07")
+
+  @@map("games")
+}
+
+model PlayerRole {
+  id                  String          @id @db.VarChar(255)
+  name                String?         @db.VarChar(255)
+  game_environment_id String          @db.VarChar(255)
+  game_players        GamePlayer[]
+  game_environments   GameEnvironment @relation(fields: [game_environment_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkg3u5ljnsc2145oht5yb20n92x")
+
+  @@map("player_roles")
+}
+
+model RoomUser {
+  session_id String @id @db.VarChar(255)
+  room_id    String @db.VarChar(255)
+  user_id    String @db.VarChar(255)
+  rooms      Room   @relation(fields: [room_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk4hmr8avmuwbes7oje2affp35y")
+  users      User   @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fkaqm4k7a8o6lq80j3l1rls58ux")
+
+  @@map("room_user")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model Room {
+  id                        String     @id @db.VarChar(255)
+  created_at                DateTime   @db.Timestamp(6)
+  impostors                 Int
+  include_default_game_envs Boolean
+  include_user_game_envs    Boolean
+  status                    String     @db.VarChar(255)
+  owner_id                  String     @db.VarChar(255)
+  games                     Game[]
+  room_user                 RoomUser[]
+  users                     User       @relation(fields: [owner_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fktnhxhxjvamaungwsm0q7e010")
+
+  @@map("rooms")
+}
+
+model User {
+  id                String            @id @db.VarChar(255)
+  is_guest          Boolean
+  password          String?           @db.VarChar(255)
+  role              String?           @db.VarChar(255)
+  username          String            @unique(map: "ukr43af9ap4edm43mmtq01oddj6") @db.VarChar(255)
+  game_environments GameEnvironment[]
+  game_players      GamePlayer[]
+  room_user         RoomUser[]
+  rooms             Room[]
+
+  @@map("users")
+}

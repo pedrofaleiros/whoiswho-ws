@@ -37,11 +37,9 @@ export default class RoomUserRepository {
         return roomUsers;
     }
 
-    async listRoomUsers(roomId: string): Promise<User[]> {
-        const roomUsers = this.findByRoom(roomId);
-
-
-
-        return [];
+    async findByUser(userId: string) {
+        return await prismaClient.roomUser.findMany({
+            where: { user_id: userId }
+        });
     }
 }

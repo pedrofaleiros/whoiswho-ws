@@ -24,6 +24,9 @@ export default class JoinRoomController {
             const { token, roomId } = data;
             var username = TokenService.validateToken(token);
 
+            //TODO: verificar
+            await this.roomUserService.deleteUserSessions(username, io);
+
             var users: UserDTO[] = await this.roomUserService.addUserToRoom(username, roomId, sessionId);
             var roomData: RoomDTO = await this.roomService.findById(roomId);
             var games: GameDTO[] = await this.gameService.findByRoom(roomData.id);

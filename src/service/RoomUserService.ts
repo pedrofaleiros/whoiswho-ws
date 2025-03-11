@@ -1,8 +1,10 @@
+import { Server } from "socket.io";
 import { UserDTO } from "../dto";
 import { ResourceNotFoundError, ValidationError } from "../errors";
 import RoomRepository from "../repository/RoomRepository";
 import RoomUserRepository from "../repository/RoomUserRepository";
 import UserRepository from "../repository/UserRepository";
+import { SocketConst } from "../utils/SocketConst";
 
 class RoomUserService {
 
@@ -24,6 +26,14 @@ class RoomUserService {
         var roomUser = await this.repository.create(user.id, room.id, sessionId);
 
         return await this.getRoomUsers(roomUser.room_id);
+    }
+
+    async deleteUserSessions(username: string, io: Server) {
+        var user = await this.userRepository.findByUsernameOrThrow(username);
+        var sessions = await this.repository.findByUser(user.id);
+        sessions.forEach(async (s) => {
+            await this.disconnectPlayer(io, s.room_id, s.session_id);
+        });
     }
 
     async removeUserFromRoom(sessionId: string): Promise<string> {
@@ -52,6 +62,22 @@ class RoomUserService {
             })
         });
         return users;
+    }
+
+    async removeSession(sessionId: string) {
+        var session = await this.repository.findBySessionId(sessionId);
+        if (session) {
+            await this.repository.delete(session.session_id);
+        }
+    }
+
+    async disconnectPlayer(io: Server, roomId: string, sessionId: string) {
+        const socketToRemove = io.sockets.sockets.get(sessionId)
+        if (socketToRemove) {
+            socketToRemove.emit(SocketConst.ERROR, 'Você foi removido da sala.')
+            socketToRemove.leave(roomId)
+            socketToRemove.disconnect()
+        }
     }
 }
 
